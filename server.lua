@@ -1,14 +1,13 @@
 
-keys = {"keyA","keyB"}
 
 function Server()
-    
-    local modem = peripheral.find('modem') or error("could not find modem", 0)
+    local keys = {"keyA", "keyB"}
+    local modem = peripheral.find('modem') or error("Could not find modem", 0)
     local serverID = os.getComputerID()
     local drive = peripheral.find('drive')
     local whitelist = {}
-    valid_SPRs = {'SHUT','STRT','WLST_ADD','WLST_RMV','WLST_SHO','MDMP','DDMP','FDMP','CKEY','DKEY','RDIR','RFLE','SVAR','SFLE','LISN'}
-    valid_OPRs = {'ECHO'}
+    local valid_SPRs = {'SHUT', 'STRT', 'WLST_ADD', 'WLST_RMV', 'WLST_SHO', 'MDMP', 'DDMP', 'FDMP', 'CKEY', 'DKEY', 'RDIR', 'RFLE', 'SVAR', 'SFLE', 'LISN'}
+    local valid_OPRs = {'ECHO'}
     function DecodeRequest(id, message)
         clientID = id
         local parts = {}
@@ -133,19 +132,19 @@ end
 
 
 function runtime()
-    
     local serverInstance = Server()
-    print('dbg1')
     serverInstance.SPR("keyA")
     serverInstance.STRT()
-    while true do 
-        print('dbg2')
-        LISN(20,true)
-        if os.pullEvent("rednet_message") then 
-            id, message = rednet.receive()
-            DecodeRequest(id, message)
+    print("Server started.")
+    while true do
+        local id, message = rednet.receive()
+        if id and message then
+            print("Received message from " .. id .. ": " .. message)
+            local parts = serverInstance.DecodeRequest(id, message)
         end
     end
 end
-end
 
+
+
+runtime()
