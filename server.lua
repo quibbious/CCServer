@@ -1,158 +1,221 @@
-function Server()
-    local keys = {"keyA", "keyB"}
-    local modem = peripheral.find('modem') or error("Could not find modem", 0)
-    local serverID = os.getComputerID()
-    local drive = peripheral.find('drive')
-    local whitelist = {}
-    local valid_SPRs = {'SHUT', 'STRT', 'WLST_ADD', 'WLST_RMV', 'WLST_SHO', 'MDMP', 'DDMP', 'FDMP', 'CKEY', 'DKEY', 'RDIR', 'RFLE', 'SVAR', 'SFLE', 'LISN'}
-    local valid_OPRs = {'ECHO'}
-    
-    -- Decode request message
-    local function DecodeRequest(id, message)
-        local clientID = id
-        local parts = {}
-        for part in string.gmatch(message, '[^;]+') do
-            table.insert(parts, part:match("^%s*(.-)%s*$"))
-        end
-        print(parts)
-        return parts
-    end
-    local function ParseParts()
-        -- does nothing RN
-    end
+-- Server.lua
 
-    -- Handle Special Operational Functions (with keys)
-    local function SPR(key)
-        local authorized = false
-        for _, validKey in ipairs(keys) do
-            if key == validKey then
-                authorized = true
+-- SPR Class (Special Request Processor)
+local SPR = {}
+SPR.__index = SPR
+
+-- SPR Constructor
+function SPR:new(modem, serverID, drive)
+    local instance = setmetatable({}, SPR)
+    instance.modem = modem
+    instance.serverID = serverID
+    instance.drive = drive
+    instance.Blacklist = {}
+    return instance
+end
+
+-- Method: Start Server
+function SPR:STRT()
+    self.modem.open()
+    self.modem.host("Server", "Server " .. self.serverID)
+    self.modem.broadcast("Server " .. self.serverID .. " is online!")
+    print("Server started.")
+end
+
+-- Method: Shutdown Server
+function SPR:SHUT()
+    self.modem.broadcast("Server " .. self.serverID .. " powering down...")
+    self.modem.unhost("Server", "Server " .. self.serverID)
+    self.modem.close()
+    print("Server shut down.")
+end
+
+-- Method: Add to Blacklist
+function SPR:BLST_ADD(computerIDs)
+    for _, id in ipairs(computerIDs) do
+        table.insert(self.Blacklist, id)
+        print("Added to Blacklist:", id)
+    end
+end
+
+-- Method: Remove from Blacklist
+function SPR:BLST_RMV(computerIDs)
+    for _, id in ipairs(computerIDs) do
+        for i, existingID in ipairs(self.Blacklist) do
+            if existingID == id then
+                table.remove(self.Blacklist, i)
+                print("Removed from Blacklist:", id)
                 break
             end
         end
-
-        if not authorized then
-            print("Unauthorized access attempt detected.")
-            return
-        end
-
-        -- Special operational functions
-        local function STRT()
-            peripheral.find("modem", rednet.open)
-            rednet.host("Server", "Server " .. serverID)
-            rednet.broadcast("Server " .. serverID .. " is online!")
-        end
-
-        local function SHUT()
-            rednet.broadcast("Server " .. serverID .. " powering down...")
-            rednet.unhost("Server", "Server " .. serverID)
-            rednet.close(modem)
-        end
-
-        local function WLST_ADD(computerIDs)
-            for _, id in ipairs(computerIDs) do
-                table.insert(whitelist, id)
-            end
-        end
-
-        local function WLST_RMV(computerIDs)
-            for _, id in ipairs(computerIDs) do
-                for i, existingID in ipairs(whitelist) do
-                    if existingID == id then
-                        table.remove(whitelist, i)
-                        break
-                    end
-                end
-            end
-        end
-
-        local function WLST_SHO()
-            for _, id in ipairs(whitelist) do
-                print(id)
-            end
-        end
-
-        local function MDMP()
-            for variable, value in pairs(_G) do
-                print("Global key:", variable, "value:", value)
-            end
-        end
-
-        local function DDMP()
-            if drive and drive.isDiskPresent() then
-                print(drive.getMountPath())
-            end
-        end
-
-        local function LISN(time, echo)
-            if type(echo) ~= "boolean" then 
-                error("echo must be a boolean", 0)
-            end
-
-            if echo then
-                local startTime = os.clock()
-                while os.clock() - startTime < time do
-                    local id, message = rednet.receive(1)
-                    if id then
-                        rednet.send(id, "ECHO: " .. message)
-                    end
-                end
-            else
-                local id, message = rednet.receive(time)
-                if id then
-                    print(id .. " sent message: " .. message)
-                end
-            end
-        end
-
-        -- Return the methods you want to be callable externally
-        return {
-            STRT = STRT,
-            SHUT = SHUT,
-            WLST_ADD = WLST_ADD,
-            WLST_RMV = WLST_RMV,
-            WLST_SHO = WLST_SHO,
-            MDMP = MDMP,
-            DDMP = DDMP,
-            LISN = LISN
-        }
     end
-
-    -- Return the method for handling special operations
-    return {
-        SPR = SPR,
-        DecodeRequest = DecodeRequest
-    }
 end
 
-function runtime()
-    -- Instantiate the server instance
-    local serverInstance = Server()
-    if not serverInstance then
-        print("Server instance is nil!")
+-- Method: Show Blacklist
+function SPR:BLST_SHO()
+    print("Blacklist:")
+    for _, id in ipairs(self.Blacklist) do
+        print(id)
+    end
+end
+
+-- Method: Dump Globals
+function SPR:MDMP()
+    print("Dumping global variables:")
+    for variable, value in pairs(_G) do
+        print("Global key:", variable, "value:", value)
+    end
+end
+
+-- Method: Dump Disk Data
+function SPR:DDMP()
+    if self.drive and self.drive.isDiskPresent() then
+        print("Drive mount path:", self.drive.getMountPath())
+    else
+        print("No disk present.")
+    end
+end
+
+-- Method: Listen on Modem
+function SPR:LISN(time, echo)
+    if type(echo) ~= "boolean" then
+        error("echo must be a boolean", 0)
+    end
+
+    if echo then
+        local startTime = os.clock()
+        print("Listening with echo for " .. time .. " seconds.")
+        while os.clock() - startTime < time do
+            local id, message = self.modem.receive(1)
+            if id then
+                self.modem.send(id, "ECHO: " .. message)
+                print("Echoed message to " .. id .. ": " .. message)
+            end
+        end
+    else
+        print("Listening without echo for " .. time .. " seconds.")
+        local id, message = self.modem.receive(time)
+        if id then
+            print(id .. " sent message: " .. message)
+        else
+            print("No messages received.")
+        end
+    end
+end
+
+-- Server Class
+local Server = {}
+Server.__index = Server
+
+-- Server Constructor
+function Server:new()
+    local modem = peripheral.find("modem")
+    if not modem then
+        error("Could not find modem peripheral.", 0)
+    end
+
+    local drive = peripheral.find("drive")
+    local serverID = os.getComputerID()
+
+    local instance = setmetatable({}, Server)
+    instance.keys = { "keyA", "keyB" }
+    instance.modem = modem
+    instance.drive = drive
+    instance.serverID = serverID
+    instance.spr = nil  -- Will hold the SPR instance
+    return instance
+end
+
+-- Method: Decode Request
+function Server:DecodeRequest(message)
+    local parts = {}
+    for part in string.gmatch(message, "[^;]+") do
+        table.insert(parts, part:match("^%s*(.-)%s*$"))
+    end
+    return parts
+end
+
+-- Method: Authorize Key
+function Server:authorize(key)
+    for _, validKey in ipairs(self.keys) do
+        if key == validKey then
+            return true
+        end
+    end
+    return false
+end
+
+-- Method: Handle Command
+function Server:handleCommand(parts)
+    local KEY = parts[1]
+    local OPERATION = parts[2]
+    local DATA = parts[3]
+    local STORE_METHOD = parts[4]
+    local END = parts[5]  -- Not used in current implementation
+
+    if not self:authorize(key) then
+        print("Unauthorized access attempt detected with key:", key)
         return
     end
 
-    -- Test the SPR function with a key
-    serverInstance.SPR("keyA")
-
-    -- Access and call STRT (start) method
-    local specialFuncs = serverInstance.SPR("keyA")  -- Get the special functions table
-    if specialFuncs then
-        specialFuncs.STRT()
-    else
-        print("No special functions available.")
+    if not self.spr then
+        self.spr = SPR:new(self.modem, self.serverID, self.drive)
     end
 
-    -- Main loop
-    while true do
-        print('Waiting for messages...')
-        local id, message = rednet.receive()
-        if id and message then
-            print("Received message from " .. id .. ": " .. message)
-            local parts = serverInstance.DecodeRequest(id, message)
+    -- Check if the command exists in SPR
+    if self.spr[command] then
+        -- Handle different command data
+        if command == "WLST_ADD" or command == "WLST_RMV" then
+            -- Assuming data is a comma-separated list of IDs
+            local computerIDs = {}
+            for id in string.gmatch(data, "[^,]+") do
+                table.insert(computerIDs, id)
+            end
+            self.spr[command](self.spr, computerIDs)
+        elseif command == "LISN" then
+            -- Assuming data contains time and echo separated by comma
+            local time, echoStr = data:match("([^,]+),([^,]+)")
+            local timeNum = tonumber(time)
+            local echo = echoStr == "true"
+            if timeNum then
+                self.spr:LISN(timeNum, echo)
+            else
+                print("Invalid LISN parameters.")
+            end
+        else
+            self.spr[command](self.spr)
         end
+    else
+        print("Invalid command received:", command)
     end
 end
 
-runtime()
+-- Main Program Execution
+local function main()
+    -- Initialize Server
+    local server = Server:new()
+    print("Server initialized with ID:", server.serverID)
+
+    -- Example: Starting the server manually (optional)
+    -- Uncomment the following lines if you want to start the server upon initialization
+    -- server.spr = SPR:new(server.modem, server.serverID, server.drive)
+    -- server.spr:STRT()
+
+    -- Main Loop
+    while true do
+        print("Waiting for messages...")
+        -- Listen for modem messages
+        local event, side, channel, replyChannel, message, sender = os.pullEvent("modem_message")
+        
+        print("Received message from:", sender, "Message:", message)
+        
+        -- Decode the message
+        local parts = server:DecodeRequest(message)
+        
+        -- Handle the command
+        server:handleCommand(parts)
+    end
+end
+
+-- Run the main function
+main()

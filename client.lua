@@ -1,10 +1,11 @@
 function Client()
+    modem = peripheral.find('modem')
     STORE_METHODS = {'FILE','VAR'}
     servers = {}
     computerID = os.getComputerID()
     function FindServers(protocol, hostname)
     
-        local servers = rednet.lookup(protocol, hostname)
+        local servers = modem.lookup(protocol, hostname)
         print("found servers" .. servers)
     end
 
@@ -34,14 +35,16 @@ function Client()
             OPR = nil
         elseif KEY == nil or SPR == nil then
             OPR = OPR
+            KEY = nil
+            SPR = nil
         end
         -- "; OPR " .. OPR ..
         if OPR == nil then
             request = "KEY " .. KEY .. "; SPR " .. SPR .. "; DATA " .. DATA .. "; STORE " .. STORE_METHOD .. "; END;"
-            rednet.send(computerID, request, WHO)
+            modem.send(computerID, request, WHO)
         elseif SPR == nil then
             request = "KEY " .. nil .. "; OPR " .. OPR .. "; DATA " .. DATA .. "; STORE " .. STORE_METHOD .. "; END;"
-            rednet.send(computerID, request, WHO)
+            modem.send(computerID, request, WHO)
         end
     end
 end
