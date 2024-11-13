@@ -110,7 +110,10 @@ end
 end
 
 function runtime()
-
-    
-
+    while true do 
+        if os.pullEvent("rednet_message") then 
+            id, message = rednet.receive()
+            DecodeRequest(id, message)
+        end
+    end
 end
