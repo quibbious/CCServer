@@ -19,7 +19,7 @@ function Server()
     end
 
     function ParseRequest(parts)
-        print(parts)
+        
     end
 
     function SPR(key) -- Special Operational Functions (key required)
@@ -87,8 +87,10 @@ function Server()
 
             
             if echo == true then
-                id, message = rednet.receive()
-                rednet.send(id, message)
+                while echo do
+                    id, message = rednet.receive()
+                    rednet.send(id, "ECHO: " .. message)
+                end
             else 
                 id, message = rednet.receive()
                 print(id .. "sent message" .. message)
@@ -107,3 +109,8 @@ function Server()
 end
 end
 
+function runtime()
+
+    
+
+end

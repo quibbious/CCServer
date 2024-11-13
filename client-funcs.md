@@ -1,29 +1,25 @@
-# Servers
+# Clients
 
-// Servers can send and recieve data, but only in the form of confirmations or ECHO requests.
-// When sent data with an operational request[OPR] string attached, the [OPR] string acts to tell the server WHAT to do with the request.
-// Servers can also save sent data to variables or files/disks.
-// Servers can also be commanded by special request strings [SPR] (keys) that dictate which connections are allowed, and which are denied.
-// Servers also hold a list of [SPR]'s that can be used to validate an admin request.
+// Clients can send and recieve data, but only to Servers.
+// When sending data with an operational request [OPR] string attached, the [OPR] string acts to tell the server WHAT to do with the request.
+// Clients can store data onto Servers (whether it be onto variables or files)
+// Client can also command Servers using special request strings [SPR] (keys) that allow the usage of admin functions.
+// Clients do not hold a list of [SPR]s, and must obtain them from a Server or an Administrator of Servers. 
 
 
 ## Request Structure:
 
-REQUEST = SPR; OPR; DATA; STORE_METHOD; END
-
-SPR: Special Operation Request
-OPR: Operation Request
-VLD: Server-used 'valid key' response
+REQUEST = KEY; SPR/OPR; DATA; STORE_METHOD; END
+KEY: 
+SPR: Special Operation Request OR OPR: Operation Request
+VLD: Server-used 'valid key' response // do not use if you are client, will result in error!
 DATA: Data to be sent
 STORE_METHOD: disk path/file name
 END: Ends the request
 ## Operational Functions(OPR): 
 
 `
-
-
 echo(msg: str) ECHO
-
 `
 
 ## Special Request Functions:
@@ -61,7 +57,7 @@ listen(echo: bool, port: int, time_duration: int) LISN
 In this example, the server key is '398583aKLmP'
 
 
-Client: 'SPR 398583aKLmP; OPR shutdown; DATA "data12345"; STORE DISK "/home/data.txt"; END'
+Client: 'KEY 398583aKLmP; SPR shutdown; OPR nil;  DATA "data12345"; STORE DISK "/home/data.txt"; END;'
 
-Server: 'OPR VLD; SPR VLD; TFR "/home/data.txt" true; END'
+Server: 'KEY VLD; SPR VLD; TFR "/home/data.txt" true; END;'
 
