@@ -5,7 +5,6 @@ function Client()
     function FindServers(protocol, hostname)
     
         local servers = rednet.lookup(protocol, hostname)
-        table.insert(servers, 0, hostname)
         print("found servers" .. servers)
     end
 
