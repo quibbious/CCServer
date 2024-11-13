@@ -146,8 +146,6 @@ function runtime()
             DecodeRequest(id, message)
         end
     end
-<<<<<<< HEAD
 end
-=======
 end
->>>>>>> 05acd80f97d48bce7848ea80458045d3adace37a
+
