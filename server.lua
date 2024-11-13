@@ -1,5 +1,3 @@
-
-
 function Server()
     local keys = {"keyA", "keyB"}
     local modem = peripheral.find('modem') or error("Could not find modem", 0)
@@ -8,27 +6,20 @@ function Server()
     local whitelist = {}
     local valid_SPRs = {'SHUT', 'STRT', 'WLST_ADD', 'WLST_RMV', 'WLST_SHO', 'MDMP', 'DDMP', 'FDMP', 'CKEY', 'DKEY', 'RDIR', 'RFLE', 'SVAR', 'SFLE', 'LISN'}
     local valid_OPRs = {'ECHO'}
-    function DecodeRequest(id, message)
-        clientID = id
+    
+    -- Decode request message
+    local function DecodeRequest(id, message)
+        local clientID = id
         local parts = {}
-
         for part in string.gmatch(message, '[^;]+') do
             table.insert(parts, part:match("^%s*(.-)%s*$"))
         end
-        
         print(parts)
         return parts
     end
 
-    function ParseRequest(parts)
-        
-    end
-
-    function RequestIncludes(request)
-    end
-
-    function SPR(key) -- Special Operational Functions (key required)
-        -- Check if the provided key is valid
+    -- Handle Special Operational Functions (with keys)
+    local function SPR(key)
         local authorized = false
         for _, validKey in ipairs(keys) do
             if key == validKey then
@@ -38,71 +29,63 @@ function Server()
         end
 
         if not authorized then
-            print("Unauthorized access attempt from" .. id .."detected. Blocking request.")
-            
+            print("Unauthorized access attempt detected.")
             return
         end
 
-        function STRT() -- startup
-            rednet.open(modem)
-            rednet.host("Server","Server " .. serverID)
-            rednet.broadcast("Server" .. serverID .. " is online!")
+        -- Special operational functions
+        local function STRT()
+            peripheral.find("modem", rednet.open)
+            rednet.host("Server", "Server " .. serverID)
+            rednet.broadcast("Server " .. serverID .. " is online!")
         end
-        function SHUT() -- shutdown
-            rednet.broadcast("Server" .. serverID .. " powering down...")
-            rednet.unhost("Server","Server " .. serverID)
+
+        local function SHUT()
+            rednet.broadcast("Server " .. serverID .. " powering down...")
+            rednet.unhost("Server", "Server " .. serverID)
             rednet.close(modem)
         end
-        function WLST_ADD(computerIDs) -- whitelist add
+
+        local function WLST_ADD(computerIDs)
             for _, id in ipairs(computerIDs) do
-              table.insert(whitelist, id)
+                table.insert(whitelist, id)
             end
-          end
-          function WLST_RMV(computerIDs) -- whitelist remove
+        end
+
+        local function WLST_RMV(computerIDs)
             for _, id in ipairs(computerIDs) do
-              for i, existingID in ipairs(whitelist) do
-                if existingID == id then
-                  table.remove(whitelist, i)
-                  break
+                for i, existingID in ipairs(whitelist) do
+                    if existingID == id then
+                        table.remove(whitelist, i)
+                        break
+                    end
                 end
-              end
             end
         end
-          function WLST_SHO() -- whitelist show
+
+        local function WLST_SHO()
             for _, id in ipairs(whitelist) do
-              print(id)
-            end
-          end
-        function MDMP() -- memory dump
-            for variable,value in pairs(_G) do
-                print("Global key", variable, "value", value)
+                print(id)
             end
         end
-        function DDMP() -- disk dump
-            if drive.isDiskPresent() then
+
+        local function MDMP()
+            for variable, value in pairs(_G) do
+                print("Global key:", variable, "value:", value)
+            end
+        end
+
+        local function DDMP()
+            if drive and drive.isDiskPresent() then
                 print(drive.getMountPath())
             end
-            
         end
-        function FDMP() -- file dump
-        end
-        function CKEY() -- create key
-        end
-        function DKEY() -- delete key
-        end
-        function RDIR() -- remove directory
-        end
-        function RFLE() -- remove file
-        end
-        function SVAR() -- save DATA in variable
-        end
-        function SFLE() -- save DATA in file
-        end
-        function LISN(time, echo)
+
+        local function LISN(time, echo)
             if type(echo) ~= "boolean" then 
                 error("echo must be a boolean", 0)
             end
-        
+
             if echo then
                 local startTime = os.clock()
                 while os.clock() - startTime < time do
@@ -112,31 +95,55 @@ function Server()
                     end
                 end
             else
-                id, message = rednet.receive(time)
+                local id, message = rednet.receive(time)
                 if id then
                     print(id .. " sent message: " .. message)
                 end
             end
-        end        
-        function BLCK() -- block computerID(s)
         end
-        
+
+        -- Return the methods you want to be callable externally
+        return {
+            STRT = STRT,
+            SHUT = SHUT,
+            WLST_ADD = WLST_ADD,
+            WLST_RMV = WLST_RMV,
+            WLST_SHO = WLST_SHO,
+            MDMP = MDMP,
+            DDMP = DDMP,
+            LISN = LISN
+        }
     end
 
-    function OPR() -- Operational Functions (no key needed)
-        function ECHO() -- ECHO DATA to CLIENT
-        end
-        
-    end
+    -- Return the method for handling special operations
+    return {
+        SPR = SPR,
+        DecodeRequest = DecodeRequest
+    }
 end
 
-
 function runtime()
+    -- Instantiate the server instance
     local serverInstance = Server()
+    if not serverInstance then
+        print("Server instance is nil!")
+        return
+    end
+
+    -- Test the SPR function with a key
     serverInstance.SPR("keyA")
-    serverInstance.STRT()
-    print("Server started.")
+
+    -- Access and call STRT (start) method
+    local specialFuncs = serverInstance.SPR("keyA")  -- Get the special functions table
+    if specialFuncs then
+        specialFuncs.STRT()
+    else
+        print("No special functions available.")
+    end
+
+    -- Main loop
     while true do
+        print('Waiting for messages...')
         local id, message = rednet.receive()
         if id and message then
             print("Received message from " .. id .. ": " .. message)
@@ -144,7 +151,5 @@ function runtime()
         end
     end
 end
-
-
 
 runtime()

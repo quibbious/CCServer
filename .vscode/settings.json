@@ -4,6 +4,7 @@
         "servers",
         "clientID",
         "valid_OPRs",
-        "valid_SPRs"
+        "valid_SPRs",
+        "serverInstance"
     ]
 }
