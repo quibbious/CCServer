@@ -59,5 +59,7 @@ In this example, the server key is '398583aKLmP'
 
 Client: 'KEY 398583aKLmP; SPR shutdown; OPR nil;  DATA "data12345"; STORE DISK "/home/data.txt"; END;'
 
+CLIENT: 'KEY 12345ABC; SPR nil; OPR ECHO; DATA "HELLO SERVER"; STORE nil; END;'
+
 Server: 'KEY VLD; SPR VLD; TFR "/home/data.txt" true; END;'
 

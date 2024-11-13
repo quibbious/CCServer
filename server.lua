@@ -2,19 +2,22 @@
 keys = {"keyA","keyB"}
 
 function Server()
+    
     local modem = peripheral.find('modem') or error("could not find modem", 0)
     local serverID = os.getComputerID()
     local drive = peripheral.find('drive')
     local whitelist = {}
     valid_SPRs = {'SHUT','STRT','WLST_ADD','WLST_RMV','WLST_SHO','MDMP','DDMP','FDMP','CKEY','DKEY','RDIR','RFLE','SVAR','SFLE','LISN'}
     valid_OPRs = {'ECHO'}
-    function DecodeRequest(message)
+    function DecodeRequest(id, message)
+        clientID = id
         local parts = {}
 
         for part in string.gmatch(message, '[^;]+') do
             table.insert(parts, part:match("^%s*(.-)%s*$"))
         end
-
+        
+        print(parts)
         return parts
     end
 
@@ -22,9 +25,25 @@ function Server()
         
     end
 
+    function RequestIncludes(request)
+    end
+
     function SPR(key) -- Special Operational Functions (key required)
-        if key ~= keys then 
-            rednet.send("invalid authorization")
+        -- Check if the provided key is valid
+        local authorized = false
+        for _, validKey in ipairs(keys) do
+            if key == validKey then
+                authorized = true
+                break
+            end
+        end
+
+        if not authorized then
+            print("Unauthorized access attempt from" .. id .."detected. Blocking request.")
+            
+            return
+        end
+
         function STRT() -- startup
             rednet.open(modem)
             rednet.host("Server","Server " .. serverID)
@@ -80,22 +99,26 @@ function Server()
         end
         function SFLE() -- save DATA in file
         end
-        function LISN(time, echo) -- listen on port for x time, echo boolean
-            if echo ~= type(true or false) then 
+        function LISN(time, echo)
+            if type(echo) ~= "boolean" then 
                 error("echo must be a boolean", 0)
             end
-
-            
-            if echo == true then
-                while echo do
-                    id, message = rednet.receive()
-                    rednet.send(id, "ECHO: " .. message)
+        
+            if echo then
+                local startTime = os.clock()
+                while os.clock() - startTime < time do
+                    local id, message = rednet.receive(1)
+                    if id then
+                        rednet.send(id, "ECHO: " .. message)
+                    end
                 end
-            else 
-                id, message = rednet.receive()
-                print(id .. "sent message" .. message)
+            else
+                id, message = rednet.receive(time)
+                if id then
+                    print(id .. " sent message: " .. message)
+                end
             end
-        end
+        end        
         function BLCK() -- block computerID(s)
         end
         
@@ -107,10 +130,20 @@ function Server()
         
     end
 end
-end
+
 
 function runtime()
-
     
-
+    local serverInstance = Server()
+    print('dbg1')
+    serverInstance.SPR("keyA")
+    serverInstance.STRT()
+    while true do 
+        print('dbg2')
+        LISN(20,true)
+        if os.pullEvent("rednet_message") then 
+            id, message = rednet.receive()
+            DecodeRequest(id, message)
+        end
+    end
 end
