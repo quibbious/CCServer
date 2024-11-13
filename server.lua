@@ -17,6 +17,9 @@ function Server()
         print(parts)
         return parts
     end
+    local function ParseParts()
+        -- does nothing RN
+    end
 
     -- Handle Special Operational Functions (with keys)
     local function SPR(key)

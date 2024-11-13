@@ -1,6 +1,7 @@
 function Client()
     STORE_METHODS = {'FILE','VAR'}
     servers = {}
+    computerID = os.getComputerID()
     function FindServers(protocol, hostname)
     
         local servers = rednet.lookup(protocol, hostname)
@@ -9,7 +10,7 @@ function Client()
     end
 
 
-    function SendRequest(KEY, SPR, OPR, DATA, STORE_METHOD)
+    function SendRequest(WHO,KEY, SPR, OPR, DATA, STORE_METHOD)
 
         if type(DATA) ~= "string" then 
             error("DATA must be of type STRING", 0)
@@ -37,10 +38,39 @@ function Client()
         end
         -- "; OPR " .. OPR ..
         if OPR == nil then
-            request = "KEY " .. KEY .. "; SPR " .. SPR .. "; DATA " .. DATA .. "; STORE " .. STORE_METHOD .. "; END;"   
+            request = "KEY " .. KEY .. "; SPR " .. SPR .. "; DATA " .. DATA .. "; STORE " .. STORE_METHOD .. "; END;"
+            rednet.send(computerID, request, WHO)
         elseif SPR == nil then
-            request = "KEY " .. nil .. "; OPR " .. OPR .. "; DATA " .. DATA .. "; STORE " .. STORE_METHOD .. "; END;"  
-            
+            request = "KEY " .. nil .. "; OPR " .. OPR .. "; DATA " .. DATA .. "; STORE " .. STORE_METHOD .. "; END;"
+            rednet.send(computerID, request, WHO)
         end
+    end
+end
+
+function runtime()
+    -- Instantiate the server instance
+    local Client = Client()
+    if not Client then
+        print("Client instance is nil!")
+        return
+    end
+    FindServers("Server",nil)
+    
+
+    while true do
+        print("WHO: ")
+        WHO = io.read()
+        print("KEY: ")
+        KEY = io.read()
+        print("SPR: ")
+        SPR = io.read()
+        print("OPR: ")
+        OPR = io.read()
+        print("DATA: ")
+        DATA = io.read()
+        print("STORE_METHOD: ")
+        STORE_METHOD = io.read()
+
+        SendRequest(WHO,KEY,SPR,OPR,DATA,STORE_METHOD)
     end
 end

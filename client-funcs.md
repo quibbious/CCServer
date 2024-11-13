@@ -9,8 +9,9 @@
 
 ## Request Structure:
 
-REQUEST = KEY; SPR/OPR; DATA; STORE_METHOD; END
-KEY: 
+REQUEST = WHO; KEY; SPR/OPR; DATA; STORE_METHOD; END
+WHO: to send the request to 
+KEY: identification key used to operate multiple functions
 SPR: Special Operation Request OR OPR: Operation Request
 VLD: Server-used 'valid key' response // do not use if you are client, will result in error!
 DATA: Data to be sent
