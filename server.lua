@@ -6,8 +6,25 @@ function Server()
     local serverID = os.getComputerID()
     local drive = peripheral.find('drive')
     local whitelist = {}
+    valid_SPRs = {'SHUT','STRT','WLST_ADD','WLST_RMV','WLST_SHO','MDMP','DDMP','FDMP','CKEY','DKEY','RDIR','RFLE','SVAR','SFLE','LISN'}
+    valid_OPRs = {'ECHO'}
+    function DecodeRequest(message)
+        local parts = {}
 
-    function SPR()
+        for part in string.gmatch(message, '[^;]+') do
+            table.insert(parts, part:match("^%s*(.-)%s*$"))
+        end
+
+        return parts
+    end
+
+    function ParseRequest(parts)
+        print(parts)
+    end
+
+    function SPR(key) -- Special Operational Functions (key required)
+        if key ~= keys then 
+            rednet.send("invalid authorization")
         function STRT() -- startup
             rednet.open(modem)
             rednet.host("Server","Server " .. serverID)
@@ -63,17 +80,30 @@ function Server()
         end
         function SFLE() -- save DATA in file
         end
-        function LISN() -- listen on port for x time, echo boolean
+        function LISN(time, echo) -- listen on port for x time, echo boolean
+            if echo ~= type(true or false) then 
+                error("echo must be a boolean", 0)
+            end
+
+            
+            if echo == true then
+                id, message = rednet.receive()
+                rednet.send(id, message)
+            else 
+                id, message = rednet.receive()
+                print(id .. "sent message" .. message)
+            end
         end
         function BLCK() -- block computerID(s)
         end
         
     end
 
-    function OPR() -- Operational Functions
+    function OPR() -- Operational Functions (no key needed)
         function ECHO() -- ECHO DATA to CLIENT
         end
         
     end
+end
 end
 
