@@ -8,22 +8,22 @@ function Server()
     local whitelist = {}
 
     function SPR()
-        function STRT()
+        function STRT() -- startup
             rednet.open(modem)
             rednet.host("Server","Server " .. serverID)
             rednet.broadcast("Server" .. serverID .. " is online!")
         end
-        function SHUT()
+        function SHUT() -- shutdown
             rednet.broadcast("Server" .. serverID .. " powering down...")
             rednet.unhost("Server","Server " .. serverID)
             rednet.close(modem)
         end
-        function WLST_ADD(computerIDs)
+        function WLST_ADD(computerIDs) -- whitelist add
             for _, id in ipairs(computerIDs) do
               table.insert(whitelist, id)
             end
           end
-          function WLST_RMV(computerIDs)
+          function WLST_RMV(computerIDs) -- whitelist remove
             for _, id in ipairs(computerIDs) do
               for i, existingID in ipairs(whitelist) do
                 if existingID == id then
@@ -33,49 +33,45 @@ function Server()
               end
             end
         end
-          function WLST_SHO()
+          function WLST_SHO() -- whitelist show
             for _, id in ipairs(whitelist) do
               print(id)
             end
           end
-        function MDMP()
+        function MDMP() -- memory dump
             for variable,value in pairs(_G) do
                 print("Global key", variable, "value", value)
             end
         end
-        function DDMP()
+        function DDMP() -- disk dump
             if drive.isDiskPresent() then
                 print(drive.getMountPath())
             end
             
         end
-        function FDMP()
+        function FDMP() -- file dump
         end
-        function CKEY()
+        function CKEY() -- create key
         end
-        function DKEY()
+        function DKEY() -- delete key
         end
-        function RDIR()
+        function RDIR() -- remove directory
         end
-        function RFLE()
+        function RFLE() -- remove file
         end
-        function SVAR()
+        function SVAR() -- save DATA in variable
         end
-        function SFLE()
+        function SFLE() -- save DATA in file
         end
-        function ECHO()
+        function LISN() -- listen on port for x time, echo boolean
         end
-        function STR()
-        end
-        function LISN()
-        end
-        function BLCK()
+        function BLCK() -- block computerID(s)
         end
         
     end
 
-    function OPR()
-        function ECHO()
+    function OPR() -- Operational Functions
+        function ECHO() -- ECHO DATA to CLIENT
         end
         
     end
