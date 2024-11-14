@@ -17,15 +17,15 @@ end
 -- Method: Start Server
 function SPR:STRT()
     self.modem.open()
-    self.modem.host("Server", "Server " .. self.serverID)
-    self.modem.broadcast("Server " .. self.serverID .. " is online!")
+    self.modem.host("Server", "Server")
+    self.modem.broadcast("Server is online!")
     print("Server started.")
 end
 
 -- Method: Shutdown Server
 function SPR:SHUT()
-    self.modem.broadcast("Server " .. self.serverID .. " powering down...")
-    self.modem.unhost("Server", "Server " .. self.serverID)
+    self.modem.broadcast("Server powering down...")
+    self.modem.unhost("Server", "Server")
     self.modem.close()
     print("Server shut down.")
 end
@@ -114,9 +114,9 @@ function Server:new()
         error("Could not find modem peripheral.", 0)
     end
 
-    local drive = peripheral.find("drive")
+    local drive = peripheral.find("drive") or nil
     local serverID = os.getComputerID()
-
+    local modem = peripheral.find('modem') or error("could not find modem",0)
     local instance = setmetatable({}, Server)
     instance.keys = { "keyA", "keyB" }
     instance.modem = modem
@@ -153,8 +153,8 @@ function Server:handleCommand(parts)
     local STORE_METHOD = parts[4]
     local END = parts[5]  -- Not used in current implementation
 
-    if not self:authorize(key) then
-        print("Unauthorized access attempt detected with key:", key)
+    if not self:authorize(KEY) then
+        print("Unauthorized access attempt detected with key:", KEY)
         return
     end
 
@@ -163,18 +163,18 @@ function Server:handleCommand(parts)
     end
 
     -- Check if the command exists in SPR
-    if self.spr[command] then
+    if self.spr[OPERATION] then
         -- Handle different command data
-        if command == "WLST_ADD" or command == "WLST_RMV" then
+        if OPERATION == "WLST_ADD" or OPERATION == "WLST_RMV" then
             -- Assuming data is a comma-separated list of IDs
             local computerIDs = {}
-            for id in string.gmatch(data, "[^,]+") do
+            for id in string.gmatch(DATA, "[^,]+") do
                 table.insert(computerIDs, id)
             end
-            self.spr[command](self.spr, computerIDs)
-        elseif command == "LISN" then
+            self.spr[OPERATION](self.spr, computerIDs)
+        elseif OPERATION == "LISN" then
             -- Assuming data contains time and echo separated by comma
-            local time, echoStr = data:match("([^,]+),([^,]+)")
+            local time, echoStr = DATA:match("([^,]+),([^,]+)")
             local timeNum = tonumber(time)
             local echo = echoStr == "true"
             if timeNum then
@@ -183,10 +183,10 @@ function Server:handleCommand(parts)
                 print("Invalid LISN parameters.")
             end
         else
-            self.spr[command](self.spr)
+            self.spr[OPERATION](self.spr)
         end
     else
-        print("Invalid command received:", command)
+        print("Invalid command received:", OPERATION)
     end
 end
 
@@ -196,23 +196,19 @@ local function main()
     local server = Server:new()
     print("Server initialized with ID:", server.serverID)
 
-    -- Example: Starting the server manually (optional)
-    -- Uncomment the following lines if you want to start the server upon initialization
-    -- server.spr = SPR:new(server.modem, server.serverID, server.drive)
-    -- server.spr:STRT()
+    -- Starting the server manually (optional)
+    server.spr = SPR:new(server.modem, server.serverID, server.drive)
+    server.spr:STRT()
 
-    -- Main Loop
+
     while true do
         print("Waiting for messages...")
-        -- Listen for modem messages
-        local event, side, channel, replyChannel, message, sender = os.pullEvent("modem_message")
-        
-        print("Received message from:", sender, "Message:", message)
-        
-        -- Decode the message
+
+        local id, message = modem.receive()
+
         local parts = server:DecodeRequest(message)
         
-        -- Handle the command
+
         server:handleCommand(parts)
     end
 end

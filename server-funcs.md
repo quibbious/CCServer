@@ -61,7 +61,13 @@ listen(echo: bool, port: int, time_duration: int) LISN
 In this example, the server key is '398583aKLmP'
 
 
-Client: 'SPR 398583aKLmP; OPR shutdown; DATA "data12345"; STORE DISK "/home/data.txt"; END'
+Client: 'KEY 398583aKLmP; SPR shutdown; OPR nil;  DATA "data12345"; STORE DISK "/home/data.txt"; END;'
 
-Server: 'OPR VLD; SPR VLD; TFR "/home/data.txt" true; END'
+Server: 'KEY VLD; SPR VLD; TFR "/home/data.txt" true; END;'
+
+
+CLIENT: 'KEY 12345ABC; SPR nil; OPR ECHO; DATA "HELLO SERVER"; STORE nil; END;'
+
+SERVER: 'KEY VLD; SPR nil; OPR VLD; TFR ERR, NO_METHOD; END;'
+
 
